@@ -19,6 +19,8 @@ Vagrant.configure("2") do |config|
       # + 2 to avoid the network and router addresses
       ip_addr = IPAddr.new(NETWORK.to_i + 2 + i, Socket::AF_INET)
       node.vm.network "private_network", ip: ip_addr.to_s, netmask: NETWORK.netmask
+
+      node.vm.provision :shell, name: "upgrade", path: "provision/upgrade.sh"
     end
   end
 end
