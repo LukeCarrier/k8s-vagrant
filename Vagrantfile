@@ -22,6 +22,7 @@ Vagrant.configure("2") do |config|
 
       node.vm.provision :shell, name: "upgrade", path: "provision/upgrade.sh"
       node.vm.provision :shell, name: "swap", path: "provision/swap.sh"
+      node.vm.provision :shell, name: "runtime-docker", path: "provision/runtime/docker.sh"
     end
   end
 end
