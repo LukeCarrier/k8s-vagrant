@@ -21,6 +21,7 @@ Vagrant.configure("2") do |config|
       node.vm.network "private_network", ip: ip_addr.to_s, netmask: NETWORK.netmask
 
       node.vm.provision :shell, name: "upgrade", path: "provision/upgrade.sh"
+      node.vm.provision :shell, name: "swap", path: "provision/swap.sh"
     end
   end
 end
