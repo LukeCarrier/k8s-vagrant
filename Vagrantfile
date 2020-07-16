@@ -1,5 +1,8 @@
-NUM_NODES = 1
 NETWORK = IPAddr.new("192.168.120.0/24")
+
+unless NUM_MASTERS == 1 || NUM_MASTERS >= 3
+  raise "At least one master is required in all configurations; HA configurations require at least 3"
+end
 
 unless IPAddr.method_defined?(:netmask)
   module IPAddrNetmaskExtensions
@@ -11,21 +14,35 @@ unless IPAddr.method_defined?(:netmask)
   IPAddr.include(IPAddrNetmaskExtensions)
 end
 
+def provision_network(vm, network, offset)
+  # + 2 to avoid the network and router addresses
+  ip_addr = IPAddr.new(network.to_i + 2 + offset, Socket::AF_INET)
+  vm.network "private_network", ip: ip_addr.to_s, netmask: network.netmask
+end
+
+def provision_common(vm)
+  vm.provision :shell, name: "upgrade", path: "provision/upgrade.sh"
+  vm.provision :shell, name: "swap", path: "provision/swap.sh"
+  vm.provision :shell, name: "runtime-docker", path: "provision/runtime/docker.sh"
+end
+
+def provision_master(vm)
+  vm.provision :shell, name: "kubeadm", path: "provision/bootstrap/kubeadm.sh"
+end
+
+def provision_cluster(vm)
+  vm.provision :shell, name: "kubeadm-init", path: "provision/bootstrap/kubeadm-init.sh"
+end
+
 Vagrant.configure("2") do |config|
-  (0..NUM_NODES - 1).each do |i|
-    config.vm.define("node#{i}") do |node|
-      node.vm.box = "generic/debian10"
+  config.vm.box = "generic/debian10"
 
-      node.vm.hostname = "node#{i}"
+  config.vm.define("master0") do |master|
+    master.vm.hostname = "master0"
 
-      # + 2 to avoid the network and router addresses
-      ip_addr = IPAddr.new(NETWORK.to_i + 2 + i, Socket::AF_INET)
-      node.vm.network "private_network", ip: ip_addr.to_s, netmask: NETWORK.netmask
-
-      node.vm.provision :shell, name: "upgrade", path: "provision/upgrade.sh"
-      node.vm.provision :shell, name: "swap", path: "provision/swap.sh"
-      node.vm.provision :shell, name: "runtime-docker", path: "provision/runtime/docker.sh"
-      node.vm.provision :shell, name: "bootstrap-kubeadm", path: "provision/bootstrap/kubeadm.sh"
-    end
+    provision_network(master.vm, NETWORK, 0)
+    provision_common(master.vm)
+    provision_master(master.vm)
+    provision_cluster(master.vm)
   end
 end
