@@ -30,8 +30,16 @@ def provision_master(vm)
   vm.provision :shell, name: "kubeadm", path: "provision/bootstrap/kubeadm.sh"
 end
 
-def provision_cluster(vm)
+def init_cluster(vm)
   vm.provision :shell, name: "kubeadm-init", path: "provision/bootstrap/kubeadm-init.sh"
+end
+
+def configure_profile(vm)
+  vm.provision :shell, name: "kube-profile", path: "provision/bootstrap/kubeadm-profile.sh"
+end
+
+def provision_cluster(vm)
+  vm.provision :shell, name: "apply-calico", path: "provision/pod-network/calico.sh"
 end
 
 Vagrant.configure("2") do |config|
@@ -43,6 +51,8 @@ Vagrant.configure("2") do |config|
     provision_network(master.vm, NETWORK, 0)
     provision_common(master.vm)
     provision_master(master.vm)
+    init_cluster(master.vm)
+    configure_profile(master.vm)
     provision_cluster(master.vm)
   end
 end
