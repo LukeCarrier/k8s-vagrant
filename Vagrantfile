@@ -1,5 +1,6 @@
 # Basic cluster configuration
 NUM_MASTERS = 3
+NUM_NODES = 8
 NETWORK = IPAddr.new("192.168.120.0/24")
 GATEWAY = "192.168.120.1"
 DEFAULT_NETWORK_INTERFACE = "ens6"
@@ -21,6 +22,9 @@ CONTROL_PLANE_VIPS = 1
 # Validate the cluster configuration as best we can
 unless NUM_MASTERS % 2 == 1
   raise "HA configurations require an odd number of masters; all clusters need at least 1"
+end
+unless NUM_NODES > 0
+  raise "At least one node is required"
 end
 
 # Monkeypatch the IPAddr#netmask method into existence if we're running in an
@@ -160,6 +164,15 @@ def join_cluster_control_plane(vm)
       path: "provision/bootstrap/kubeadm-join-control-plane.sh")
 end
 
+# Stand up a provisioner to join a node to the cluster.
+#
+# @param [VagrantPlugins::Kernel_V2::VMConfig] vm
+def join_cluster(vm)
+  vm.provision(
+      :shell, name: "kubeadm-join", env: KUBEADM_ENV,
+      path: "provision/bootstrap/kubeadm-join.sh")
+end
+
 Vagrant.configure("2") do |config|
   # Use the vanilla Debian 10 (Buster) image.
   config.vm.box = "debian/buster64"
@@ -202,6 +215,19 @@ Vagrant.configure("2") do |config|
       join_cluster_control_plane(master.vm)
       provision_apiserver_proxy(master.vm, NETWORK, i, ip_addr)
       configure_profile(master.vm)
+    end
+  end
+
+  # Finally, join our nodes.
+  (0..NUM_NODES - 1).each do |i|
+    config.vm.define("node#{i}") do |node|
+      node.vm.hostname = "node#{i}"
+
+      ip_addr = cidr_host_addr(NETWORK, CONTROL_PLANE_VIPS + NUM_MASTERS + i)
+      provision_network(node.vm, ip_addr, GATEWAY, NETWORK.netmask)
+
+      provision_common(node.vm)
+      join_cluster(node.vm)
     end
   end
 end

@@ -29,3 +29,9 @@ Now bring up the additional masters. Because our cluster has three masters, the 
 vagrant up master1
 vagrant up master2
 ```
+
+You're now free to bring up the nodes:
+
+```console
+vagrant up
+```
