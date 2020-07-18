@@ -35,3 +35,5 @@ You're now free to bring up the nodes:
 ```console
 vagrant up
 ```
+
+With this complete, copy the `/etc/kubernetes/admin.conf` file to your host user's `~/.kube/admin` file, and rename the context to something more descriptive. You're now able to run `kubectl` commands directly from your host.
