@@ -184,6 +184,10 @@ Vagrant.configure("2") do |config|
 
     domain.memory = 2048
   end
+  config.vm.provider :virtualbox do |vbox|
+    vbox.cpus = 2
+    vbox.memory = 2048
+  end
 
   # Disable the default synced folder, for which this box requires an NFS server
   # on the host.
