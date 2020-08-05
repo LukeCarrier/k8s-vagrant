@@ -124,12 +124,25 @@ def provision_network(vm, ip_addr, gateway, netmask)
       "private_network", ip: ip_addr, gateway: gateway, netmask: netmask)
 end
 
+# Create cluster node kubeadm environment.
+#
+# @param [Hash<Symbol, String>] defaults
+# @param [String] ip_addr
+# @return [Hash<Symbol, String>]
+def make_kubeadm_env(defaults, ip_addr)
+  KUBEADM_ENV.merge({
+    APISERVER_ADVERTISE_ADDRESS: ip_addr,
+  })
+end
+
 # Stand up cluster initialisation provisioner.
 #
 # @param [VagrantPlugins::Kernel_V2::VMConfig] vm
-def init_cluster(vm)
+# @param [String] ip_addr
+def init_cluster(vm, ip_addr)
   vm.provision(
-      :shell, name: "kubeadm-init", env: KUBEADM_ENV,
+      :shell, name: "kubeadm-init",
+      env: make_kubeadm_env(KUBEADM_ENV, ip_addr),
       path: "provision/bootstrap/kubeadm-init.sh")
 end
 
@@ -158,18 +171,22 @@ end
 # Stand up a provisioner to join a node to the cluster control plane.
 #
 # @param [VagrantPlugins::Kernel_V2::VMConfig] vm
-def join_cluster_control_plane(vm)
+# @param [String] ip_addr
+def join_cluster_control_plane(vm, ip_addr)
   vm.provision(
-      :shell, name: "kubeadm-join-control-plane", env: KUBEADM_ENV,
+      :shell, name: "kubeadm-join-control-plane",
+      env: make_kubeadm_env(KUBEADM_ENV, ip_addr),
       path: "provision/bootstrap/kubeadm-join-control-plane.sh")
 end
 
 # Stand up a provisioner to join a node to the cluster.
 #
 # @param [VagrantPlugins::Kernel_V2::VMConfig] vm
-def join_cluster(vm)
+# @param [String] ip_addr
+def join_cluster(vm, ip_addr)
   vm.provision(
-      :shell, name: "kubeadm-join", env: KUBEADM_ENV,
+      :shell, name: "kubeadm-join",
+      env: make_kubeadm_env(KUBEADM_ENV, ip_addr),
       path: "provision/bootstrap/kubeadm-join.sh")
 end
 
@@ -202,7 +219,7 @@ Vagrant.configure("2") do |config|
 
     provision_common(master.vm)
     provision_apiserver_proxy(master.vm, NETWORK, 0, ip_addr)
-    init_cluster(master.vm)
+    init_cluster(master.vm, ip_addr)
     configure_profile(master.vm)
     provision_cluster(master.vm)
   end
@@ -216,7 +233,7 @@ Vagrant.configure("2") do |config|
       provision_network(master.vm, ip_addr, GATEWAY, NETWORK.netmask)
 
       provision_common(master.vm)
-      join_cluster_control_plane(master.vm)
+      join_cluster_control_plane(master.vm, ip_addr)
       provision_apiserver_proxy(master.vm, NETWORK, i, ip_addr)
       configure_profile(master.vm)
     end
@@ -231,7 +248,7 @@ Vagrant.configure("2") do |config|
       provision_network(node.vm, ip_addr, GATEWAY, NETWORK.netmask)
 
       provision_common(node.vm)
-      join_cluster(node.vm)
+      join_cluster(node.vm, ip_addr)
     end
   end
 end
