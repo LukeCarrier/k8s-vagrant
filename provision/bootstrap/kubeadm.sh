@@ -1,5 +1,7 @@
 #!/bin/sh
 
+export DEBIAN_FRONTEND=noninteractive
+
 ip link
 cat /sys/class/dmi/id/product_uuid
 
