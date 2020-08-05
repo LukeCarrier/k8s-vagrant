@@ -59,6 +59,7 @@ end
 #
 # @param [VagrantPlugins::Kernel_V2::VMConfig] vm
 def provision_common(vm)
+  vm.provision :shell, name: "fix-grub-pc", path: "provision/fix-grub-pc.sh"
   vm.provision :shell, name: "upgrade", path: "provision/upgrade.sh"
   vm.provision :shell, name: "swap", path: "provision/swap.sh"
   vm.provision :shell, name: "runtime-docker", path: "provision/runtime/docker.sh"
