@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+  redis:
+    image: lukecarrier/redis:latest
+    build:
+      context: image/
+      args:
+        redis_version: latest

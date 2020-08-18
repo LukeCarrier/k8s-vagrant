@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-sentinel
+  labels:
+    redis.io/role: sentinel
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: redis-sentinel
+  template:
+    metadata:
+      labels:
+        app: redis-sentinel
+    spec:
+      securityContext:
+        runAsUser: 999
+      containers:
+      - name: redis-sentinel
+        image: lukecarrier/redis:latest
+        args:
+        - redis-server
+        - /home/redis/redis-sentinel.conf
+        - --sentinel
+        env:
+        - name: REDIS_ROLE
+          value: sentinel
+        - name: SENTINEL_CONFIG_FILE
+          value: /home/redis/redis-sentinel.conf
+        - name: SENTINEL_CONFIG_CONTENT
+          value: sentinel monitor misery redis-master 6379 2
+        # resources:
+        #   limits:
+        #     memory: "128Mi"
+        #     cpu: "500m"
+        ports:
+        - containerPort: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-sentinel
+spec:
+  selector:
+    app: redis-sentinel
+  type: ClusterIP
+  ports:
+  - port: 26379
+    targetPort: 26379

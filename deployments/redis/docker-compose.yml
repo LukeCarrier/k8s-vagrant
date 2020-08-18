@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+  master:
+    image: lukecarrier/redis:latest
+    user: redis
+    command:
+      - redis-server
+    environment:
+      REDIS_ROLE: master
+  replica:
+    image: lukecarrier/redis:latest
+    user: redis
+    command:
+      - redis-server
+      - --replicaof
+      - master
+      - '6379'
+    environment:
+      REDIS_ROLE: replica
+  sentinel:
+    image: lukecarrier/redis:latest
+    user: redis
+    command:
+      - redis-server
+      - /home/redis/redis-sentinel.conf
+      - --sentinel
+    environment:
+      REDIS_ROLE: sentinel
+      SENTINEL_CONFIG_CONTENT: |
+        sentinel monitor misery master 6379 2
+      SENTINEL_CONFIG_FILE: /home/redis/redis-sentinel.conf
